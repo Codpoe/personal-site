@@ -11,7 +11,7 @@ specifiers:
   eslint-plugin-react-hooks: ^4.2.0
   husky: ^7.0.4
   lint-staged: ^11.0.0
-  onepress: ^0.1.27
+  onepress: ^0.1.28
   prettier: ^2.3.2
   rimraf: ^3.0.2
   typescript: ^4.3.5
@@ -27,7 +27,7 @@ devDependencies:
   eslint-plugin-react-hooks: 4.3.0_eslint@7.32.0
   husky: 7.0.4
   lint-staged: 11.2.6
-  onepress: 0.1.27_@types+react@17.0.37
+  onepress: 0.1.28_@types+react@17.0.37
   prettier: 2.5.1
   rimraf: 3.0.2
   typescript: 4.5.4
@@ -2991,8 +2991,8 @@ packages:
       wrappy: 1.0.2
     dev: true
 
-  /onepress/0.1.27_@types+react@17.0.37:
-    resolution: {integrity: sha512-5eTk5T+dl3MuPrHiMC3bh8dUfbT/LRdjHvMc8bdhrdWkzLvGPj/hF6sohz2G+kofV5YhrItkS2Kwmo10rCXqgA==}
+  /onepress/0.1.28_@types+react@17.0.37:
+    resolution: {integrity: sha512-/b62UN/hH0a8tZrIVnau7ClKCY7ET4oA8ki6v9FOfXZ/7As7Iw3steGMydlafGWK57fVtY/Wyjpscg+ORe1laQ==}
     hasBin: true
     dependencies:
       '@docsearch/css': 3.0.0-alpha.42
