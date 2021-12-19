@@ -1,0 +1,140 @@
+---
+date: 2017/02/18
+---
+
+# 水波纹效果的实现
+
+## 前言
+
+在学 Android 开发的时候，一直很喜欢 Material Design，经常翻看官方的指南。其中有个很出众的 UI 效果 – 水波纹。Android 开发者对这个效果应当是不陌生的，可以说这是 Material Design 的一大特性了吧。
+
+个人觉得这个设计的动效还是很赞的，于是就想在前端简陋地实现一下。
+
+## 实现
+
+### 内容本体和水波纹效果分开
+
+若一个内容（div, button 等）想加入水波纹的效果，只需加个 class`ripple-effect`。如果不分开的话，每个想实现水波纹效果的地方都必须加上相同的水波纹 View，再说了，水波纹应是广泛通用的。所以应该把水波纹提取出来，单独作为一个 class 来使用。
+
+### 内容本体
+
+为了实现水波纹叠加在内容本体之上，水波纹应该是绝对定位的，而绝对定位是相对于最近一个使用了定位的父节点来说的，所以内容本体用到了定位`position: relative`。
+
+其实 Android 里面是有两种水波纹效果的：
+
+- 有边界 ![android-ripple](https://ws1.sinaimg.cn/large/a45cbeeagy1fcmnw7ikiwg208p0fen5z)
+- 无边界 ![no-border](https://ws1.sinaimg.cn/large/a45cbeeagy1fcmp6kzl8ng208p0fe1kx)
+  可以看到无边界的水波纹都延伸到了上方的`TextView`。
+
+那么对于有边界的水波纹：`overflow: hidden`，而无边界的水波纹则是`overflow: visible`。
+
+综上，用于内容本体的 CSS 应该是：
+
+```css
+.ripple-effect {
+  position: relative;
+  overflow: hidden; /*有边界的水波纹*/
+  overflow: visible; /*无边界的水波纹*/
+}
+```
+
+### 水波纹实现
+
+其实水波纹只是一个 View 从小放大的效果而己，即由`scale(0)`到`scale(?)`。
+
+首先，这个 View 是圆形的，所以是`border-radius: 100%`。然后为了不遮挡下面的内容，水波纹的背景色应有一定的透明度，例如`background: rgba(0, 0, 0, 0.25)`。
+
+```css
+.ripple {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 100%;
+  transform: scale(0);
+  pointer-events: none;
+}
+```
+
+#### 水波纹的大小
+
+可以将水波纹的大小设为内容本体长和宽中的最大值，但这就存在一个问题，如果点击位置不在内容本体的中心，那么扩散之后的水波纹并不能覆盖整个内容本体。最差的情况是，如果点击位置在内容本体里的最远端，那么水波纹至多只能覆盖内容本体的一半。既然如此，只需将水波纹的扩散设为`scale(2)`。
+
+#### 水波纹的位置
+
+上面也说了，水波纹应该是绝对定位的，所以`position: absolute`。但仅仅这一行，只能将水波纹置于父节点内部的左上角，即水波纹的左上角点与内容本体的左上角点重合。这并不能实现在点击时由鼠标点击的位置触发水波纹，所以要将水波纹的中心移到鼠标点击的位置。
+
+先来看看几个概念的示意图：
+
+![示意图](https://ws1.sinaimg.cn/large/a45cbeeagy1fcn16olmtzj20o20ggjsf)
+
+- 红点。点击位置
+- `pageX, pageY`。点击位置相对于整个网页的坐标。
+- `left, top`。指`getBoundingClientRect().left`和`getBoundingClientRect().top`，表示内容本体相对于浏览器窗口的坐标。
+- `scrollLeft, scrollTop`。表示网页的滚动距离。
+
+显然，通过`pageY - top - scrollTop`可以得到点击位置相对于内容本体的 Y 坐标，同理，可以通过`pageX - left - scrollLeft`可以得到点击位置相对于内容本体的 X 点击位置相对于整个网页的坐标。
+
+知道点击位置相对于内容本体的坐标之后，就可以轻易计算出将水波纹中心移到点击位置需要移动的距离：
+
+- Y 方向上需要移动的距离：`pageY - top - scrollTop - offsetHeight / 2`
+- X 方向上需要移动的距离：`pageX - left - scrollLeft - offsetWidth / 2`
+
+其中，`offsetHeight`和`offsetWidth`分别指水波纹的高和宽。
+
+#### 水波纹扩散
+
+想要动态修改 CSS，方便的做法是增删类，所以这里写一个 CSS 类`show`，里面加上动画，包括：
+
+- 由`scale(0)`到`scale(2)`
+- 由`opacity: 1`到`opacity: 0`
+
+```css
+.ripple.show {
+  animation: ripple 0.75s ease-out;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+```
+
+当点击事件触发时，先移除 show 类，再添加回 show 类，这样就可以达到每次点击都有水波纹扩散的效果。
+
+#### 具体 JavaScript 代码
+
+```js
+var addRippleEffect = function (e) {
+  var target = e.target;
+  var rect = target.getBoundingClientRect();
+  var ripple = target.querySelector('.ripple');
+
+  if (!ripple) {
+    // 首次添加水波纹
+    ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.height = ripple.style.width =
+      Math.max(rect.width, rect.height) + 'px';
+    target.appendChild(ripple); // 添加水波纹子节点
+  }
+
+  ripple.classList.remove('show'); // 移除类 show
+
+  var top =
+    e.pageY - rect.top - ripple.offsetHeight / 2 - document.body.scrollTop;
+  var left =
+    e.pageX - rect.left - ripple.offsetWidth / 2 - document.body.scrollLeft;
+
+  ripple.style.top = top + 'px';
+  ripple.style.left = left + 'px';
+  ripple.classList.add('show'); // 添加类 show
+  return false;
+};
+```
+
+在页面结构加载完之后，就可以遍历所有带`ripple-effect`的节点，逐个将上面的函数添加到点击事件中去。
+
+## 总结
+
+初涉前端，感觉上，一些效果的实现比在 Android 上实现要来得简单一些。但我知道，UI 和交互是灵感迸发的结果，在各种炫酷特效前面，很多时候只能默默奉上自己的膝盖，随后百思，而终不得其解。

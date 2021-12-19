@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background: #f0dab3
+    url(https://static.smartisanos.cn/cloud/note/img/cloud_note_bg_d2def91e10.jpg)
+    fixed;
+  color: theme('colors.primary.500');
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+svg {
+  display: initial;
+}

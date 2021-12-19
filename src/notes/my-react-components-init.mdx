@@ -1,0 +1,373 @@
+---
+date: 2020/03/07
+---
+
+# 打造自己的 React 组件库
+
+React 生态里已经有很多优秀的组件库，如 [antd](https://ant.design/)、[material-ui](https://material-ui.com/)、[zent](https://youzan.github.io/zent)等，为什么不直接用，而是自己再搞一套呢？目的很纯粹、简单：
+
+- 我爱学习
+- 觉得已有的不够好看、不够好用（一千个读者心中有一千个哈姆雷特）
+
+其实打造一个组件库需要考虑的东西很多，如：
+
+- 组件代码规范
+- 组件设计
+- 组件测试
+- 组件文档
+- 组件维护
+- ...
+
+这里面有很多东西都是我不熟悉的，需要一步一步来学习。这是一个船新的系列，现在这个是第一篇，先说下怎么初始化一个组件库，希望能有第二篇、第三篇...
+
+## 语言选择
+
+### JS / TS
+
+毫无疑问，必须 ts。
+
+ts 的静态类型会帮助我们在组件开发阶段尽早发现一些由于类型带来的隐藏 bug，另一个重要的好处是 ts 的编辑器提示会给组件使用方的体验带来质的飞越，意味着我们不需要记住很多 API，枚举等，解放生产力鸭：
+
+![ts 提示](https://i.loli.net/2020/03/08/HMAqnvZ9QIYOyU1.png)
+
+### PostCSS / Sass / Less
+
+这看个人喜好了。一开始组件库用的 PostCSS，后来因为平时工作很少接触 Less，就把组件库样式用 Less 重构了。
+
+## 目录结构
+
+目录结构这东西虽说有点主观，但是怎么样都得有一个自己满意的规范吧。我这里的大致结构如下：
+
+```
+root
+├─ dist                       -> 打包 dist
+├─ es                         -> 打包 es 模块
+├─ lib                        -> 打包 cjs 模块
+├─ docs                       -> 顶层文档目录。这里不放组件文档
+|  ├─ introduction.md
+|  └─ changelog.md
+├─ gulpfile.ts                -> 打包脚本
+├─ scripts                    -> 其他脚本
+├─ src                        -> 组件都放 src 里
+|  ├─ button                  -> 组件目录
+|  |  └─ test                 -> 测试
+|  |  |  ├─ index.test.tsx
+|  |  ├─ Button.tsx           -> 核心组件代码，以首字母大写的驼峰格式命名
+|  |  ├─ index.ts             -> 入口，一般用于导出组件及其类型定义
+|  |  ├─ index.less           -> 样式
+|  |  └─ README.mdx           -> 组件文档
+|  ├─ styles                  -> 公共样式目录
+|  |  └─ var.less             -> 样式变量，如主题色
+|  ├─ utils                   -> 工具函数目录
+|  |  └─ use-scroll.ts
+├─ doczrc.js                  -> docz 配置文件
+├─ tsconfig.json              -> ts 配置文件
+├─ package.json
+└─ README.md
+```
+
+> `dist`、`es`、`lib`是打包输出目录，打包时会自动生成。
+
+## 文档
+
+使用过很多文档工具，[storybook](https://storybook.js.org/)、[docusaurus](https://docusaurus.io/)、[docz](https://docz.site/)，目前使用的是 docz。
+
+storybook 是完完全全为组件库开发而生的，用来调试还不错，但是 API 略繁琐，用来做文档的话体验很一般，样式太 geek 了，不像一个文档…而且需要装不少插件，之前的版本对 ts、mdx 的支持也不友好，弃了。
+
+后来就改用了 docusaurus，因为 v1 版本不支持 mdx，所以我用的是还在 alpha 阶段的 v2 版本，总体还行，小 bug 略多，毕竟是 alpha。docusaurus 有一点我不是很喜欢，它要求所有文档都放在一个地方。
+
+我理想中的组件目录结构是组件文档、组件 test 都放在对应的组件目录内，而不是在根目录的一个文件夹集中存放，这是最舒服的开发体验。相信我，在一个文件内改代码后，需要在十万八千里的另一个文件中改 demo、文档，这体验会很糟糕。
+
+再后来就迁移到了现在的 docz，它足够简单、易于上手，并且允许配置文档的路径，这样我就可以在组件目录内写 README，而对于一些与组件没有强关联的文档，如 quick-start.md、changelog.md 等，可以单独写在根目录下的 docs 文件夹中：
+
+```js
+// doczrc.js
+export default {
+  base: '/redefy/‘,
+  files: [‘./docs/**/*.mdx’, ‘./src/**/*.mdx’], // -> 自定义文档路径
+  typescript: true,
+};
+```
+
+写组件文档类似这样：
+
+```md
+// src/button/README.mdx
+—
+name: Button 按钮
+route: /button
+Menu: 基础组件
+—
+
+import { Playground } from ‘docz’;
+import Button from ‘./index’;
+
+## 演示
+
+<Playground>
+	<Button type=“primary”>Primary</Button>
+</Playground>
+```
+
+docz 除了样式丑了点，其他真的都挺好。
+
+## 编译、打包
+
+组件库一般会输出 esm、cjs、umd 这三种打包格式，有些激进的组件库如 zent 则只会输出 esm 格式，这要求使用方必须对 node_modules/zent 进行编译处理。而我这里会按照一般做法，同时输出 esm、cjs、umd。
+
+一开始我是打算用 webpack、rollup 这些打包工具去处理的，后来发现事情因此变得更复杂了，难道必须用 webpack 这些打包工具吗？其实组件库绝大多数都是 js、css 代码，很少有其他类型的资源，所以 esm、cjs 打包直接用 tsc 就可以完成，指定不同的`module`即可，当然，用 babel + babel-plugin-typescript 也行，但没必要了。
+
+> umd 打包还是需要用到 rollup 的。
+
+使用 gulp 来组织打包流程，先看下总体流程吧：
+
+```
+└─┬ default
+  └─┬ <series>
+    ├── clean
+    ├── prepare
+    ├─┬ <series>
+    │ ├── copyScript
+    │ └─┬ <parallel>
+    │   ├── compileESM
+    │   ├── compileCJS
+    │   └── compileUMD
+    └─┬ <series>
+      ├── copyStyle
+      └── compileStyle
+```
+
+### 组件依赖
+
+在组件库中，组件不是互相孤立的，他们之间时常会有依赖，例如 Button 组件有个加载中的状态，那么就会使用到 Loading 组件，再比如 Select 组件的输入框其实是 Input 组件，那么 Select 就依赖了 Input。与此同时，组件可能会对依赖组件的样式做一些微调、覆盖，这时候如果不能正确处理组件的样式顺序，可能会导致样式优先级出现颠倒错乱。
+
+所以打包的第一步就是收集组件的依赖。
+
+#### 收集依赖
+
+思路是正则匹配组件文件的`import`语句，然后遍历这些语句，从中提取出导入名`importName`和导入路径`importPath`，判断导入的是不是一个组件库组件，如果是则推入组件的依赖数组中，相关代码如下：
+
+```ts
+// gulpfile.ts/collect-deps.ts
+function getDeps(filePath: string, name: string, code: string): string[] {
+  return (code.match(IMPORT_RE) || [])
+    .map(item => {
+      // 提取导入名和导入路径。
+      let [, importName, importPath] =
+        item.match(/import\s+(\w+)[\s|,]+.*?from\s+[‘|”](.+?)[‘|”]/) || [];
+
+      // 通过`<${importName}`判断导入名是否被当做组件来使用
+      if (
+        importName &&
+        importPath &&
+        code.includes(`<${importName}`) &&
+        !path.isAbsolute(importPath)
+      ) {
+        importPath = path.join(filePath, ‘..’, importPath);
+
+        if (isComponentScript(importPath)) {
+          // 根据导入路径来获取组件名称
+          const componentName = getComponentName(importPath);
+          if (componentName !== name) {
+            return componentName;
+          }
+        }
+      }
+
+      return '';
+    })
+    .filter(item => !!item);
+}
+```
+
+收集到组件依赖后，就以`Record<组件名，组件依赖数组>`的形式存入一个对象中 - `depsMap`：
+
+```json
+{
+  “base-select”: [
+    "input”,
+    “pop”
+  ],
+  “button”: [
+    “loading”,
+    “pop-menu”
+  ]
+}
+
+```
+
+在所有组件收集完毕后，为了生成一个总的样式入口，我们还需要把依赖树打平：
+
+```json
+{
+  “flat-deps”: [
+    “input”,
+    “pop”,
+    “base-select”,
+    “loading”,
+    “pop-menu”,
+    “button”,
+  ]
+}
+```
+
+至此，依赖收集完成。
+
+#### 生成组件样式脚本入口
+
+有了依赖树，这里就可以生成样式入口了，同时这一步也是为了支持样式的按需加载。我的想法是在打包时给每个组件都生成一个 style 目录，其结构如下：
+
+```
+root
+├─ es                   -> 组件打包输出目录示例
+|  ├─ button            -> 组件目录
+|  |  └─ style          -> 样式入口文件目录
+|  |  |  ├─ index.js    -> 样式入口文件，里面会引用编译后的 index.css
+|  |  |  └─ raw.js      -> 样式入口文件，里面会引用编译前的 index.less
+```
+
+举个例子，如果 Button 组件依赖了 Loading 组件，那么打包生成的 button/style/index.js 中应该先引用 Loading 组件的样式，再引用自身的样式：
+
+```js
+// es/button/style/index.js
+import ‘../../loading/style'; // 这里是 style，即 style/index
+import ‘../index.css’; // <- 这里是 .css
+```
+
+而对应的 raw.js 内容是：
+
+```js
+import ‘../../loading/style/raw’; // 这里是 raw
+import ‘../index.less’; // <- 这里是 .less
+```
+
+完成组件样式入口后，使用组件就不用担心样式顺序了，配合[babel-plugin-import](https://github.com/ant-design/babel-plugin-import)也会更方便一些。
+
+```js
+import Button from ‘path-to-components/button’;
+import ‘path-to-components/button/style’;
+```
+
+#### 生成组件库脚本入口
+
+单个组件入口是已经有了的，如`src/button/index.ts`，剩下的是生成组件库入口，它应该是这样的：
+
+```ts
+export * from ‘./base-select/index’;
+export * from ‘./button/index’;
+export * from ‘./checkbox/index’;
+// ...
+```
+
+脚本不会有像样式那样的顺序问题，所以导出时不必遵循依赖顺序，但既然都有了`depsMap`，按照依赖顺序导出也完全没问题。
+
+### 打包 ESM / CJS
+
+`src`里的组件 ts 文件会被复制到`es`、`lib`目录，同时上面生成的样式入口文件、组件库入口文件也会复制到这两个目录，这样打包所需要的 ts 文件都已准备好了，然后用 ts 编译一下就基本完成啦。注意，编译完成后需要清除 ts 源文件。
+
+```ts
+function getTsProject(dir?: OutputDir) {
+  return ts.createProject(
+    ‘tsconfig.json’,
+    // 不同打包方式的 module 值不一样
+    dir === ‘es’ ? { module: ‘ESNext’ } : undefined
+  );
+}
+
+function compileScript(dir: OutputDir) {
+  const srcGlob = `${dir}/**/*.{ts,tsx}`;
+  return gulp
+    .src(srcGlob)
+    .pipe(getTsProject(dir)()) // 编译
+    .pipe(gulp.dest(dir)) // 输出
+    .on(‘end’, () => del([srcGlob, `!${dir}/**/*.d.ts`])); // 清除 ts 源文件
+}
+```
+
+### 打包 UMD
+
+上面生成的组件库入口文件会复制到`dist`目录中，打包 umd 时 rollup 以`dist/index.ts`为入口文件进行打包，有几个点需要注意：
+
+- 用 @rollup/plugin-replace 清除`process.env.NODE_ENV`
+- 把组件库的`peerDependencies`作为 rollup 打包的外部依赖
+
+```ts
+const bundle = await rollup.rollup({
+  input: ‘dist/index.ts’, // 入口文件
+  plugins: [
+    rollupTypescript({ module: ‘ESNext’, skipLibCheck: true }),
+    rollupCommonjs(),
+    rollupResolve({ extensions: [‘.js’, ‘.jsx’, ‘.ts’, ‘.tsx’] }),
+    rollupReplace({ ‘process.env.NODE_ENV’: JSON.stringify(‘production’) }), // 清除 process.env.NODE_ENV
+  ],
+  external: Object.keys(getPkg(‘peerDependencies’)), // 外部依赖
+});
+```
+
+拿到 bundle 后，调用 `bundle.generate`方法输出内容，由于上面把`react`、`react-dom`声明为外部依赖，所以输出时需要告诉 rollup 已经有这些 global 值了：
+
+```ts
+const res = await bundle.generate({
+  file: `dist/${name}.js`,
+  format: ‘umd’, // umd 格式
+  name, // 全局变量的名字，即组件库的名字
+  globals: { // 注明 global 变量
+    react: ‘React’,
+    ‘react-dom’: ‘ReactDOM’,
+  },
+});
+```
+
+得到打包的文件内容后，调用 uglifyjs 插件压缩代码，最终输出到`dist/xxx.min.js`：
+
+```ts
+strFileSrc(`${name}.js`, res.output[0].code)
+  .pipe(gulp.dest(‘dist’))
+  .pipe(uglify()) // 压缩
+  .pipe(rename(`${name}.min.js`)) // 重命名为 xxx.min.js
+  .pipe(gulp.dest(‘dist’)) // 输出
+  .on(‘end’, cleanDist);
+```
+
+### 打包样式
+
+打包样式跟打包脚本有一点不同，样式没有不同的模块规范，所以只需打包一次即可，打包完成后复制样式文件到其他打包目录。
+
+根据`depsMap`，能以正确的顺序生成样式入口`es/index.less`：
+
+```less
+@import ‘./input/index.less';
+@import ‘./pop/index.less’; // pop 依赖 input
+@import ‘./base-select/index.less’; // base-select 依赖 pop
+```
+
+然后把`src`里的 less 文件复制到`es`，打包样式所需要的 less 文件就都准备好了：
+
+```ts
+export function compileStyle() {
+  return gulp
+    .src(‘es/**/*.less’) // 输入文件
+    .pipe(less()) // 编译 less
+    .pipe(autoprefixer()) // 加浏览器前缀
+    .pipe(cleanCss()) // 清理样式
+    .pipe(gulp.dest(‘es’)) // 输出 es 目录
+    .pipe(gulp.dest(‘lib’)) // 输出 lib 目录
+    .pipe(
+      rename(parsed => {
+        if (parsed.dirname === ‘.’) {
+          return {
+            …parsed,
+            basename: getPkg(‘name’),
+          };
+        }
+      })
+    )
+    .pipe(gulp.dest(‘dist’)) // 输出 dist 目录
+}
+```
+
+## 总结
+
+打造组件库不是一件容易的事，万事开头难。这篇只是说下怎么初始化一个简陋的组件库项目，还有很多方面未曾涉及，其实从初始化到开发，到发版，到“能用”，还是需要不少时间和精力的。
+
+> 附上项目地址：https://github.com/codpoe/redefy

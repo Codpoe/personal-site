@@ -1,0 +1,123 @@
+---
+date: 2017/08/12
+---
+
+# CSS 实现长投影
+
+随着 Google Material Design 的推进，长投影效果也变得越来越常见，很多应用的图标上都有长投影的应用。在 PS 和 Sketch 里都能简单地实现长投影，那么如果我要在网页上显示长投影是不是也得用 PS 或者 Sketch 呢？其实不然，利用 CSS 的`text-shadow`属性也能实现长投影。
+
+## text-shadow
+
+`text-shadow`接收一组以,分隔的值，而每个值可由 x 轴偏移、y 轴偏移、颜色、模糊半径组成，颜色和模糊半径都是可选的：
+
+```css
+text-shadow: 14px 14px 4px rgba(51, 51, 51, 0.2);
+```
+
+显然，单个`text-shadow`的值仅仅是一层阴影罢了，顶多就是让文字有浮起来的感觉，而文字本身看起来仍然只是薄薄的一层。但是长投影是让文字看起来有高度，有体积。
+其实很明显，要想实现长投影，必须让很多层阴影连续不断地叠加、铺展起来，幸好`text-shadow`是支持添加多个值，于是我们可以这样：
+
+```css
+text-shadow: 1px 1px rgba(51, 51, 51, 0.7), 5px 5px rgba(51, 51, 51, 0.5),
+  10px 10px rgba(51, 51, 51, 0.3);
+```
+
+这里列出来的几个值是完全不足以达到长投影的要求的。一方面是阴影的偏移差要足够小，如果偏移差大了，整个长投影的边缘会有很多锯齿；二是各个阴影的色差变化要均匀，一般来说，长投影的颜色是越远越深的，如果色差不均匀，出来的效果会不够真实。那怎么解决呢？
+
+## 利用 JS 生成 text-shadow
+
+既然需要更精细地控制`text-shadow`的各个阴影值，那么就引入 JS 来解决问题吧。
+
+- 首先需要一个初始的颜色，一般在背景色的基础上再加深
+- 利用循环生成阴影，循环的迭代变量差设为 0.5，循环次数根据长投影的长度而定
+- 在每次循环里面根据当前的循环进度设置颜色透明度，这里设的初始透明度是 0.6，然后总的阴影值拼接上此次循环的阴影值
+
+这里的`0.5、0.6`都是经验值，可以随意修改。
+
+```js
+function getLongShadow(startColor = '212,213,213', shadowLength = 10) {
+  let textShadow = '';
+  let alpha;
+  let color;
+  let seperator = ',';
+
+  for (let i = 0.5; i <= shadowLength; i = i + 0.5) {
+    alpha = (1 - (i - 0.5) / shadowLength) * 0.6;
+    color = `rgba(${startColor}, ${alpha})`;
+
+    if (i === shadowLength) {
+      seperator = '';
+    }
+
+    textShadow += `${i}px ${i}px ${color}${seperator}`;
+  }
+
+  return textShadow;
+}
+```
+
+然后就可以通过`element.style.textShadow = getLongShadow()`或者其他什么方式设置样式了。
+
+## 动态生成随鼠标而动的 text-shadow
+
+知道了怎么生成`text-shaodw`，那么现在再加一点效果，就是生成随鼠标而动的长投影，长投影始终朝着鼠标所在的方位，并且鼠标离目标文字越远则长投影越长。
+
+- 首先需确定目标文字的 x、y 坐标和屏幕的宽高，算出以目标文字为中心的屏幕边框偏移。
+- 然后在鼠标的`mousemove`事件中取得鼠标的 x、y 坐标，同理算出其与目标文字的偏移，再将得到的偏移跟上面得到的屏幕偏移比较得出 x、y 各自方向的阴影偏移率。
+
+由于要根据 x、y 方向上的偏移率计算偏移方向，所以要稍微修改下上面的`getLongShadow`方法：
+
+```js
+// 增加了 ratioX、ratioY 参数
+function getLongShadow(
+  startColor = '212,213,213',
+  shadowLength = 10,
+  ratioX,
+  ratioY
+) {
+  let textShadow = '';
+  let alpha;
+  let color;
+  let seperator = ',';
+
+  for (let i = 0.5; i <= shadowLength; i = i + 0.5) {
+    alpha = (1 - (i - 0.5) / shadowLength) * 0.6;
+    color = `rgba(${startColor}, ${alpha})`;
+
+    if (i === shadowLength) {
+      seperator = '';
+    }
+
+    // textShadow += `${i}px ${i}px ${color}${seperator}`;
+    textShadow += `${i * ratioX}px ${i * ratiaY}px ${color}${seperator}`;
+  }
+
+  return textShadow;
+}
+```
+
+计算偏移：
+
+```js
+let rect = element.getBoundingClientRect();
+let focus = { x: rect.left, y: rect.top };
+let mouse = { x: 0, y: 0 };
+let width = ((window.innerWidth - focus.x) * 3) / 4;
+let height = ((window.innerHeight - focus.y) * 3) / 4;
+let ratioX;
+let ratioY;
+
+window.addEventListener('mousemove', function (ev) {
+  mouse.x = ev.clientX;
+  mouse.y = ev.clientY;
+  ratioX = (mouse.x - focus.x) / width;
+  ratioY = (mouse.y - focus.y) / height;
+  element.style.textShadow = getLongShadow('212,213,213', 10, ratioX, ratioY);
+});
+```
+
+这里的`3/4`是为了不让阴影扯得过长，可以根据实际情况修改。
+
+## 没了
+
+其实在涉及坐标运算的时候，比如`mousemove`事件，`canvas`的绘制等，有时会误以为 x 和 y 有密切关联，其实不然。当想法陷入僵局时，分而治之的思想可能会比较有用，也就是将 x 和 y 分开考虑和计算。

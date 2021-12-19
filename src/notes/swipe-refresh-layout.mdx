@@ -1,0 +1,46 @@
+---
+date: 2016/09/20
+---
+
+# SwipeRefreshLayout 的圈圈无法显示的问题
+
+> `onResume()`这个函数在`Activity`变得可见时被调用，执行完`onResume()`之后，`Activity`就会请求`AMS`渲染它所管理的视图。
+
+这是《从小工到专家》书上的说法，也没错。
+
+最近在使用`SwipeRefreshLayout`时，想在 Activity 一可见时就调用`setRefreshing(true)`，达到自动刷新的效果，以期能有更好的用户体验，这也是大多 App 所采取的做法。于是乎，我就在`onResume()`中调用了`mRefreshLay.setRefreshing(true)`，按道理应该是没什么问题的，我就开心地边等编译边玩手机。
+
+结果运行的时候，发现那个很好看的`SwipeRefreshLayout`圈圈并没有如期出现，一点影子都没...可却成功地加载了数据！这说明刷新功能还是触发了的，只是`SwipeRefreshLayout`还没完成初始化，看来是我把`onResume()`理解错了。
+
+其实这种情况有几种解决办法：
+
+- 在`SwipeRefreshLayout.post()`中，调用`setRefreshing(true)`，这是最简单的解决方案：
+
+  ```java
+  mRefreshLay.post(new Runnable() {
+      @Override
+      public void run() {
+          mRefreshLay.setRefreshing(true);
+          // Your refresh logic...
+      }
+  });
+  ```
+
+- 重写 Activity 的`onWindowFocusChanged()`方法：
+  只要在里面调用`setRefreshing(true)`即可。可是这会带来一个新的问题：当你从别的 Activity 或者 Dialog 返回到这个 Activity 时，就又会再调用`setRefreshing(true)`。这也是理所当然的，看`onWindowFocusChanged()`这个方法名就知道啦。
+
+  改进一下，设一个全局 boolean 变量`hasRefreshed = false`，当第一次调用`onWindowFocusChanged()`时，根据判断将`hasRefreshed = true`，具体代码如下：
+
+  ```java
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+      super.onWindowFocusChanged(hasFocus);
+      if (!hasRefreshed) {
+          hasRefreshed = true;
+          mRefreshLay.setRefreshing(true);
+          // Your refresh logic...
+      }
+  }
+  ```
+
+- 重写 SwipeRefreshLayout，在里面做判断，若初始化完成就调用`setRefreshing(true)`。相比前两种方案，这个就麻烦一点，不推荐。
