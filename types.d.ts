@@ -1,1 +1,1 @@
-/// <reference types="onepress/shim.d.ts" />
+/// <reference types="pressify/shim.d.ts" />
