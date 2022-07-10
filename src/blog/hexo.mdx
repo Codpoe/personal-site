@@ -1,0 +1,111 @@
+---
+date: 2016/08/02
+---
+
+# 终于又双叒叕搭建好我的博客啦
+
+## Hexo
+
+> Hexo 是快速、简洁且高效的博客框架。
+
+## 安装 Hexo
+
+1. 需要先安装 Git 和 配置 Node.js
+
+   - Git。就不说了，程序员的「蚊虫叮咬，居家旅行」必备良药。
+   - Node.js。直接官网下载，然后一路 Next。
+
+2. 创建个新文件夹（或者你认为合适的地方）用于存放将会生成的各种文件，在这个文件夹中右击打开 Git Bash，接着输入指令：
+
+   ```shell
+   npm install hexo-cli -g
+   hexo init
+   npm install
+   ```
+
+   这时候，Hexo 就已经安装完毕了，可以在文件夹内看到一些文件。
+
+3. 然后输入：
+   ```shell
+   hexo g
+   hexo s
+   ```
+   用浏览器打开 http://localhost:4000/，就会看到效果啦！到这里，Hexo 已经在本地基本配置好了，不过也仅仅是本地能看，别人访问不了。
+
+## 部署到 GitHub
+
+1. 新建一个名为`usrname.github.io`的仓库，例如，我的 GitHub 用户名是`codpoe`，那么我的仓库名就是`codpoe.github.io`。
+
+2. 安装 [hexo-deployer-git](https://github.com/hexojs/hexo-deployer-git)
+
+   ```shell
+   npm install hexo-deployer-git --save
+   ```
+
+3. 在文件夹的`_comfig.yml`文件中找到`Deployment`，修改如下：
+   ```yaml
+   deploy:
+     type: git
+     repo: <repository url> ## 你的仓库地址
+     branch: [branch] ## 分支名称。如果您使用的是 GitHub 或 GitCafe 的话，程序会尝试自动检测。
+     message: [message] ## 自定义提交信息 (默认为 Site updated: {{ now('YYYY-MM-DD HH:mm:ss') }})
+   ```
+4. 输入：
+   ```shell
+   hexo g
+   hexo d
+   ```
+
+## 更换域名
+
+1. 从万网、GoDaddy 等等都可以购买域名，我的域名是在万网买的，价格还不错。买到域名之后，就可以开始解析，推荐用 DNSPOD 来解析。
+2. 在 Hexo 目录的 source 文件夹中，新建一个名为 CNAME 的文件，然后把域名写入这个 CNAME 文件中。
+
+   > CNAME 文件没有后缀。
+
+3. 执行：
+   ```shell
+   hexo g
+   hexo d
+   ```
+
+## 更换主题
+
+1. Hexo 的主题资源很多，网上一搜就有，传送门：
+
+   - [官方搜集并整理的主题站](https://github.com/hexojs/hexo/wiki/Themes)
+   - [知乎上有关 Hexo 主题的回答](https://www.zhihu.com/question/24422335)
+
+2. 下载主题文件、解压，保存到 Hexo 目录下的`themes`文件夹中，然后修改 Hexo 目录下的`_config.yml`文件：
+   ```yaml
+   # Extensions
+   ## Plugins: https://hexo.io/plugins/
+   ## Themes: https://hexo.io/themes/
+   theme: maupassant ## 在这里更换主题
+   ```
+3. 执行：
+   ```shell
+   hexo clean
+   hexo g
+   hexo d
+   ```
+4. 刷新一下博客，就可以看到新主题的效果。
+
+> - 想修改主题的各种配置的话，要查看相应主题的文档说明。
+> - 想在原主题的基础上修改样式的话，直接对主题的样式文件动手吧。
+
+## 备份
+
+Hexo 是先在本地生成静态网页，再传到服务器上的。如果要换电脑怎么办呢？@\_@ 拿 U 盘把整个文件夹拷走吗？这似乎不太优雅。
+
+其实在一开始安装 Hexo 的时候，目录下就已经生成一个`.gitignore`文件，这难道意味着官方推荐用 git 的方式来管理和备份 Hexo 文件吗？我想是吧。
+
+- 一个方法是，在 GitHub 或者 Coding 之类的代码托管网站，新建一个仓库，然后上传整个 Hexo 文件夹。
+- 还有个方法就是，在已经存在的仓库 usrname.github.io 上新建一个分支，例如，我新建了一个 hexo 分支，然后把本地的 Hexo 文件夹上传到这个分支。
+
+我现在就是用第二个方法来备份 Hexo 文件。
+
+## 推荐阅读
+
+- [Hexo 官方文档](https://hexo.io/zh-cn/docs/)
+- [史上最详细的 Hexo 博客搭建图文教程](https://xuanwo.org/2015/03/26/hexo-intor/)

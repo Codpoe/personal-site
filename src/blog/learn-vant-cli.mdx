@@ -1,0 +1,35 @@
+---
+date: 2021/12/29
+---
+
+# vant-cli 学习日记
+
+## 2021-12-29
+
+直接用 `pnpm dlx create-vant-cli-app` 创建出来的项目还在用 vant-cli v3，所以手动修改为 v4，之后跑 dev 发现有报错：
+
+```
+Error: ENOENT: no such file or directory, scandir 'D:\src'
+```
+
+需要把 `vant.config.js` 修改为 `vant.config.mjs` 并且把 cjs 改成 esm。
+
+接着再跑 dev，由于 v4 已经迁移成 vite 了，起服务还是非常快的：
+
+```
+vite v2.7.9 dev server running at:
+
+  > Network:  http://172.17.10.126:3000/
+  > Local:    http://localhost:3000/
+```
+
+就在我以为已经成功的时候，打开 `http://localhost:3000/` 发现实际页面是我之前在本地跑的 OnePress 的服务，
+也就是说即使端口已经有占用，这似乎是 vite 自身的问题。
+
+后来我把 OnePress 的服务停了，再跑 dev 打开页面发现还是有报错：
+
+```
+description is not defined
+```
+
+配置 `vantConfig.site.description` 问题解决。但是这有点迷惑，应该做好防御降级处理的。

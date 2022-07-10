@@ -1,0 +1,42 @@
+.markdown-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body > .py-code-light:nth-last-child(2) {
+  margin-bottom: 0;
+}
+
+.markdown-body .header-anchor {
+  float: left;
+  margin-left: -0.87em;
+  padding-right: 0.23em;
+  font-weight: 500;
+  opacity: 0;
+  transition: color 0.25s, opacity 0.25s;
+}
+
+.markdown-body h1:hover .header-anchor,
+.markdown-body h1 .header-anchor:focus,
+.markdown-body h2:hover .header-anchor,
+.markdown-body h2 .header-anchor:focus,
+.markdown-body h3:hover .header-anchor,
+.markdown-body h3 .header-anchor:focus,
+.markdown-body h4:hover .header-anchor,
+.markdown-body h4 .header-anchor:focus {
+  opacity: 1;
+}
+
+.prose :where(pre code):not(:where([class~='not-prose'] *)) {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  padding: 0.86em 1.14em;
+}
+
+.prose :where(h3 + .py-code-light + .py-code-dark):not(:where([class~="not-prose"] *)) {
+  margin-top: 0;
+}

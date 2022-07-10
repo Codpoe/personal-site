@@ -1,0 +1,176 @@
+---
+date: 2016/08/08
+---
+
+# Translucent StatusBar 的一点实践总结
+
+## 前言
+
+> 以下所说，基于 minSdkVersion 21。
+
+Android 4.4 之前，所有 App 的顶部都是黑漆漆的一条状态栏，跟多彩的 App 内容显得比较不搭，以至于很多人因此说 Android 的 App 丑，比不上 iOS 的美。这也似乎是事实。但从 4.4 开始，Android 引入了透明状态栏的概念，于是乎各路开发纷纷上了透明状态栏的车，实现方式「百花齐放，百家争鸣」，得到的效果也不尽相同。
+
+## StatusBar 对比
+
+目前市面上的 App 常见的 StatusBar 有三种：
+
+- 黑黑黑。例如：京东
+  ![京东](http://7xttuv.com2.z0.glb.qiniucdn.com/blog/black-statusbar.png-blogsize)
+
+  现在 Android 7.0 都已经发布了，为什么还有不少 App 是黑黑的一条状态栏呢？因为透明状态栏坑多啊，为了更广的 App 用户，有的数据说现在 Android 5.0 以下的用户比例还挺大的，以至于很多人都不想去适配。讲真，开发个人项目的话，我都不想去适配 4.4，直接`minSdkVersion 21`。
+
+- 完全透明。现在很多 App 都有这个效果了，例如，网易云音乐：
+  ![网易云音乐](http://7xttuv.com2.z0.glb.qiniucdn.com/blog/neteasy-music.jpg-twopage)
+
+  还有 Bilibili
+  ![Bilibili](http://7xttuv.com2.z0.glb.qiniucdn.com/blog/bilibili-statusbar.jpg-twopage)
+
+  仔细对比网易云音乐和 Bilibili 的状态栏，其实不难发现，即便二者的状态栏看似都是透明的，但是当打开 Drawer 之后还是能看出，Bilibili 的状态栏蒙上了一层半透明的遮罩。从实现的角度看，Bilibili 的状态栏实现方案应该属于下面所说的半透明状态栏。至于为何当 Drawer 关闭的时候 Bilibili 的状态栏看起来跟网易云的透明状态栏一样，就留给下面的实践环节来说了。
+
+- 半透明的。例如酷市场：
+  ![酷市场](http://7xttuv.com2.z0.glb.qiniucdn.com/blog/ku-market.jpg-twopage)
+
+  酷市场的状态栏应该是谷歌规范的了，但我个人认为 Google Play 的状态栏应该是 Material design 状态栏的最佳栗子：
+
+  ![Google Play](http://7xttuv.com2.z0.glb.qiniucdn.com/google-play-statusbar.jpg-twopage)
+
+  在 Google Play 中，普通页面（单纯的 Toolbar）和 DrawerLayout 的 StatusBar 都是半透明的，而带有`CollapsingToolbarLayout`的页面的 StatusBar 则是`colorPrimaryDark`。
+
+## 实践
+
+### 之前
+
+其实我一开始搞状态栏是奔着 iOS 去的，怎么像 iOS 就怎么来，也就是上面所说的完全透明的状态栏，类似于网易云音乐。完全透明状态栏的实现方式并不复杂，在 Activity 的`setContentView(R.layout.activityname);`之前加入：
+
+```java
+if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+    Window window = getWindow();
+    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+    window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+            | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+    window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    window.setStatusBarColor(Color.TRANSPARENT);
+}
+```
+
+就可以实现 App 全局透明状态栏，不管是普通页面还是 DrawerLayout。但这样的话，整个界面、所有的控件都会上移，以至于可能 Toolbar 被状态栏遮挡。解决方法也很简单，调整控件的位置就好，举个栗子，为了把 Toolbar 移回正常的位置，我之前的做法是给把 Toolbar 嵌入到`AppBarLayout`中，然后给 Toolbar 设置一个`layout_marginTop`：
+
+```xml
+<android.support.design.widget.AppBarLayout
+    app:theme="@style/ThemeOverlay.AppCompat.Dark"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/circular_anim_toolbar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_marginTop="24dp"
+        app:navigationIcon="@drawable/ic_arrow_back_white_24dp"
+        app:title="CircularAnim">
+    </android.support.v7.widget.Toolbar>
+</android.support.design.widget.AppBarLayout>
+```
+
+最近发现，这种方法有个严重弊端就是，想实现 Toolbar 的滑动隐藏是比较麻烦的，所以改用另一种方法，在 Toolbar 上放置一个高度为当前状态栏高度的、跟 Toolbar 颜色一致的 View。
+
+> 为什么不直接`fitsSystemWindows="true"`？
+
+试下就知道了，虽然 fitsSystemWindows 确实可以将控件移回正常的位置，但状态栏就变成 Activity 的背景色了。例如下图的背景色是白色，状态栏就也就变成了白茫茫一片：
+
+![白色状态栏](http://7xttuv.com2.z0.glb.qiniucdn.com/blog/white-statusbar.png-blogsize)
+
+更新：突然发现，如果根部局是`CoordinatorLayout`的话，状态栏的颜色会变成`colorPrimaryDark`。不过！不过！有个很奇葩的地方，注意看图：
+
+应该不难看到，状态栏和 Toolbar 之间有着还算明显的阴影，感觉就像 Toolbar 的 z 轴位置高于状态栏的。
+(° ー °〃)
+
+还需要说明的是，实测在 Smartisan OS、Flyme、氢 OS 上，只需在`styles.xml`的`AppTheme`中加入：
+
+```xml
+<item name="android:windowTranslucentStatus">true</item>
+```
+
+就可以实现透明状态栏，而在原生上则是半透明的。两种解决方案相对而言，我比较喜欢后一个，因为优雅一点，只需改 styles，而不用在 Java 代码中写一堆东西。
+现在帮助实现透明状态栏的工具类/库有很多，推荐一个功能很强大的：[StatusBarUtil](https://github.com/laobie/StatusBarUtil)，不仅仅可以调透明状态栏，大致的原理是上面说的置顶 view。当然最好自己实现啦，比较自由一点，什么都是可控的。
+
+### 现在
+
+我一直觉得，为了个状态栏，而特意去调整我的布局 xml 和加一堆 Java 代码是不优雅的，按 Android 原来的样子来应是最好的。当然啦，往往事与愿违，需求若是这样，你就不得不按需求来。那么，问题来了，优雅的状态栏应是怎么实现呢？我觉得吧：
+
+> 能在 styles.xml 的 AppTheme 里实现的，尽量在这里面实现。
+
+1. 先在`values`目录下的`styles.xml`定义一个`Base.AppTheme`作为基础：
+
+   ```xml
+   <style name="Base.AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+       <!-- Customize your theme here. -->
+       <item name="colorPrimary">@color/colorPrimary</item>
+       <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+       <item name="colorAccent">@color/colorAccent</item>
+   </style>
+   ```
+
+2. 然后定义`AppTheme`和`AppTheme.Translucent`：
+
+   ```xml
+   <style name="AppTheme" parent="Base.AppTheme" />
+   <style name="AppTheme.Translucent" parent="Base.AppTheme"/>
+   ```
+
+3. 再在`values-v21`目录下的`styles.xml`中重新定义`AppTheme.Translucent`：
+
+   ```xml
+   <style name="AppTheme.Translucent" parent="Base.AppTheme">
+       <item name="android:windowTranslucentStatus">true</item>
+   </style>
+   ```
+
+   注意的是，无论你在哪个 SDK 版本的`values`目录下的`styles.xml`新建了主题，都要在最基础的`values`目录下的`styles.xml`定义一个同名主题，否则可能会报错。
+
+4. 最后在`AndroidManifest.xml`中，修改需要透明状态栏的`Activity`：
+
+   ```xml
+   <activity
+       android:name=".RecyclerViewActivity"
+       android:theme="@style/AppTheme.Translucent" >
+   </activity>
+   ```
+
+   何谓需要透明状态栏的 Activity ？我自己的原则是：
+
+   - 一般的页面（即单纯的 Toolbar 或者 AppBarLayout），用默认的 AppTheme。
+   - DrawerLayout 或者包含有 CollapsingToolbarLayout 的，用`AppTheme.Translucent`。例如酷市场，这几种页面就都有了，复杂一点。
+
+   为什么上面的第二种情况就要用`AppTheme.Translucent`呢？因为比较符合规范、漂亮，最重要的一点是实现所需的效果也比较简单、优雅，但有点小坑要注意，下节详说。
+
+### 填坑
+
+- DrawerLayout
+  当给根布局为 DrawerLayout 的 Activity 主题设为`AppTheme.Translucent`时，按道理说，应该要调整 DrawerLayout 的 content 的控件位置，也的确要如此，但这何来优雅？其实只要在 DrawerLayout 的布局中加上：
+
+  ```xml
+  fitsSystemWindows="true"
+  ```
+
+- CollapsingToolbarLayout
+  CollapsingToolbarLayout 的一个主要功能是实现背景（往往是图片）与 Toolbar 的视差滚动。当布局中包含有 CollapsingToolbar 时，设置`fitsSystemWindows="true"`的地方还应该是根部局吗？非也，很奇怪的，应该把`fitsSystemWindows="true"`设置在 CollapsingToolbarLayout 里面的 ImageView：
+  ```xml
+  <ImageView
+      android:id="@+id/rv_shared_img"
+      android:layout_width="match_parent"
+      android:layout_height="200dp"
+      android:fitsSystemWindows="true"
+      app:layout_collapseMode="parallax"
+      android:scaleType="centerCrop"
+      android:src="@drawable/croatian_coast" />
+  ```
+  而且 Toolbar 折叠之后可以明显分出 colorPrimary 和 colorPrimaryDark，并且继续滑动的话，能正常地隐藏 Toolbar，而状态栏的颜色依旧为 colorPrimaryDark，这很好，很 Toolbar，这才是 Android App 该有的样子啊。
+
+## 说说 B 站
+
+前面已经说过，B 站的状态栏虽然看起来是完全透明的，可当你打开 Drawer 时会发现，这什么鬼，Drawer 上的状态栏怎么是半透明的，说好的完全透明呢？
+
+B 站真是够独辟蹊径的，其实这种效果的实现方式跟上面所说的是一样样的，只不过，B 站把`colorPrimary`和`colorPrimaryDark`的颜色设为一样了，机智，服\_(: 」∠)\_

@@ -1,0 +1,37 @@
+:root {
+  /* background colors */
+  --c-bg-0: #ffffff;
+  --c-bg-1: theme('colors.gray.100');
+  --c-bg-2: theme('colors.gray.200');
+  --c-bg-3: theme('colors.gray.300');
+
+  /* text colors */
+  --c-text-0: theme('colors.gray.800');
+  --c-text-1: theme('colors.gray.700');
+  --c-text-2: theme('colors.gray.500');
+  --c-text-3: theme('colors.gray.400');
+
+  /* border colors */
+  --c-border-0: theme('colors.gray.100');
+  --c-border-1: theme('colors.gray.200');
+  --c-border-2: theme('colors.gray.300');
+}
+
+html.dark {
+  /* background colors */
+  --c-bg-0: #22272e;
+  --c-bg-1: #2d333b;
+  --c-bg-2: #343a43;
+  --c-bg-3: #3c424b;
+
+  /* text colors */
+  --c-text-0: theme('colors.gray.200');
+  --c-text-1: theme('colors.gray.300');
+  --c-text-2: theme('colors.gray.400');
+  --c-text-3: theme('colors.gray.500');
+
+  /* border colors */
+  --c-border-0: theme('colors.gray.800');
+  --c-border-1: theme('colors.gray.700');
+  --c-border-2: theme('colors.gray.600');
+}
