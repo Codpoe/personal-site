@@ -21,14 +21,14 @@ export function Home() {
       {blogPagesData.map(item => (
         <Link
           key={item.routePath}
-          className="group flex items-center py-6 cursor-pointer"
+          className="group flex items-center py-5 sm:py-6 cursor-pointer"
           to={item.routePath}
         >
           <h1 className="flex-1 text-base font-semibold group-hover:text-primary-500 transition-colors">
             {item.meta?.title || 'Untitled'}
           </h1>
           {item.meta?.date && (
-            <span className="ml-10 flex-shrink-0 text-sm text-c-text-2">
+            <span className="ml-8 flex-shrink-0 text-sm text-c-text-2">
               {item.meta.date}
             </span>
           )}

@@ -54,13 +54,15 @@ export function Layout() {
       <div className="min-h-screen max-w-3xl min-w-0 w-full mx-auto px-6 flex flex-col items-stretch">
         <Header />
         <main className="flex-1">{layout}</main>
-        <footer className="py-6 sm:py-10 mt-10 text-center text-c-text-2 text-sm">
+        <footer className="py-6 sm:py-10 mt-8 text-center text-c-text-2 text-sm">
           Copyright © 2021-present Codpoe.
           <br />
           Built with Vite & React. Powered by{' '}
           <a
             className="hover:text-primary-500 transition-colors"
             href="https://github.com/Codpoe/pressify"
+            target="_blank"
+            rel="noreferrer"
           >
             Pressify
           </a>
